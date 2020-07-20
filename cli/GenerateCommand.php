@@ -5,6 +5,8 @@ use Grav\Common\Grav;
 use Grav\Console\ConsoleCommand;
 use Symfony\Component\Console\Input\InputArgument;
 use Symfony\Component\Console\Input\InputOption;
+use Grav\Common\Page\Page;
+use Grav\Common\Filesystem\Folder;
 
 require __DIR__ . '/../functions.php';
 require __DIR__ . '/../vendor/RollingCurl/Request.php';
@@ -66,8 +68,55 @@ class GenerateCommand extends ConsoleCommand {
       'f',
       InputOption::VALUE_NONE,
       'Overwrite previously generated files.'
+    )
+    ->addOption(
+      'directories-copy',
+      'dc',
+      InputOption::VALUE_REQUIRED,
+      'Comma separated list of directories to copy (URIs relative to Grav root).'
     );
   }
+
+    /**
+     * Generate localized route based on the translated slugs found through the pages hierarchy
+     */
+    protected function _getTranslatedUrl($lang, $path)
+    {
+        $translated_url_parts = array();
+        $grav = Grav::instance();
+        $pages = $grav['pages'];
+        $page = $pages->get($path);
+        $current_node = $page;
+        $max_recursions = 10;
+        while ($max_recursions > 0 && $current_node->slug() != 'pages' && $path != 'pages') {
+            $translated_md_filepath = "{$path}/{$current_node->template()}.{$lang}.md";
+            if (file_exists($translated_md_filepath)) {
+                //$grav['language']->setActive($lang);
+                $translated_page = new Page();
+                $translated_page->init(new \SplFileInfo($translated_md_filepath));
+                //$translated_page->filePath($translated_md_filepath);
+                $translated_slug = $translated_page->slug();
+                if (!empty($translated_slug)) {
+                    array_unshift($translated_url_parts, $translated_slug);
+                } else {
+                    $untranslated_slug = $current_node->slug();
+                    if (!empty($untranslated_slug)) {
+                        array_unshift($translated_url_parts, $untranslated_slug);
+                    }
+                }
+                $current_node = $current_node->parent();
+                $path = dirname($path);
+            }
+            $max_recursions--;
+        }
+        if (!empty($translated_url_parts)) {
+            //array_unshift($translated_url_parts, $lang);
+            array_unshift($translated_url_parts, '');
+            return implode('/', $translated_url_parts);
+        } else {
+            return '';
+        }
+    }
 
   protected function serve() {
 
@@ -83,7 +132,8 @@ class GenerateCommand extends ConsoleCommand {
       'simultaneous' => $this->input->getOption('simultaneous'),
       'assets'       => $this->input->getOption('assets'),
       'taxonomy'     => $this->input->getOption('taxonomy'),
-      'force'        => $this->input->getOption('force')
+      'force'        => $this->input->getOption('force'),
+      'directories-copy' => $this->input->getOption('directories-copy')
     ];
     $input_url    = $this->options['input-url'];
     $output_url   = $this->options['output-url'];
@@ -93,6 +143,7 @@ class GenerateCommand extends ConsoleCommand {
     $assets       = $this->options['assets'];
     $taxonomy     = $this->options['taxonomy'];
     $force        = $this->options['force'];
+    $directories_copy = $this->options['directories-copy'];
 
     // default output path
     $event_horizon = GRAV_ROOT . '/';
@@ -111,6 +162,20 @@ class GenerateCommand extends ConsoleCommand {
         $pages = array_intersect_key((array)$pages, $pages2);
       }
     }
+
+    // override pages array with translated routes if more than 1 language is found
+    $languages = $grav['language']->getLanguages();
+    if (is_array($languages) && count($languages)>1) {
+        $pages_new = array();
+        foreach ($languages as $language) {
+            foreach ($pages as $page_slug => $page_path) {
+                $page_key = sprintf('/%s%s', $language, $this->_getTranslatedUrl($language, $page_path));
+                $pages_new[$page_key] = $page_path;
+            }
+        }
+        $pages = $pages_new;
+    }
+
     // get taxonomy map
     $taxonomies = $grav['taxonomy']->taxonomy();
     $taxonomyCount = count((array)$taxonomies);
@@ -118,6 +183,7 @@ class GenerateCommand extends ConsoleCommand {
     /* generate pages
     ----------------- */
     if ($pageCount) {
+      //$this->output->writeln(print_r($pages, true));
       $rollingCurl = new \RollingCurl\RollingCurl();
       foreach ($pages as $grav_slug => $grav_file_path) {
         $request = new \RollingCurl\Request($input_url . $grav_slug);
@@ -187,6 +253,40 @@ class GenerateCommand extends ConsoleCommand {
       } else {
         $this->output->writeln('<red>ERROR</red> No taxonomies were found');
       }
+    }
+
+    /* copying some folders */
+    if (!empty($directories_copy)) {
+        $dirs_to_copy = explode(',', $directories_copy);
+        foreach ($dirs_to_copy as $dir_to_copy) {
+            Folder::copy(trim($dir_to_copy,'/'), rtrim($output_path, ' /').'/'.trim($dir_to_copy,'/'));
+        }
+    }
+
+    /* generate php redirects if home alias is not empty */
+    if (is_array($languages) && count($languages)>1) {
+        if (!empty($grav['config']['system']['home']['alias'])) {
+            foreach ($languages as $language) {
+                $redirect_contents = sprintf(
+                    '<?php'.PHP_EOL.'header("Location: %s/");'.PHP_EOL.'?>',
+                    trim($grav['config']['system']['home']['alias'], '/')
+                );
+                file_put_contents(sprintf(
+                    '%s/%s/index.php',
+                    rtrim($output_path, ' /'),
+                    $language
+                ), $redirect_contents);
+            }
+            $main_redirect_contents = sprintf(
+                '<?php'.PHP_EOL.'header("Location: %s/%s/");'.PHP_EOL.'?>',
+                $languages[0],
+                trim($grav['config']['system']['home']['alias'], '/')
+            );
+            file_put_contents(sprintf(
+                '%s/index.php',
+                rtrim($output_path, ' /')
+            ), $main_redirect_contents);
+        }
     }
 
     /* done

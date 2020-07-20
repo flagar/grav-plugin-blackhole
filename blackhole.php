@@ -23,6 +23,7 @@ class BlackholePlugin extends Plugin {
       $assets       = $this->config->get('plugins.blackhole.generate.assets');
       $taxonomy     = $this->config->get('plugins.blackhole.generate.taxonomy');
       $force        = $this->config->get('plugins.blackhole.generate.force');
+      $directories_copy = $this->config->get('plugins.blackhole.generate.directories_copy');
       $this->content =
         'bin/plugin blackhole generate ' . ROOT_URL .
         ($output_url   ? ' --output-url '   . $output_url   : '') .
@@ -31,7 +32,8 @@ class BlackholePlugin extends Plugin {
         ($simultaneous ? ' --simultaneous ' . $simultaneous : '') .
         ($assets       ? ' --assets'                        : '') .
         ($taxonomy     ? ' --taxonomy'                      : '') .
-        ($force        ? ' --force'                         : '')
+        ($force        ? ' --force'                         : '') .
+        ($directories_copy ? ' --directories-copy '.$directories_copy : '')
       ;
     }
   }

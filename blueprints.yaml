@@ -29,6 +29,10 @@ form:
       collapsed: false
       collapsible: false
       fields:
+        generate.directories_copy:
+          type: text
+          label: Directories to copy:
+          help: Comma-separated list of directories to copy (relative from Grav root)
         generate.output_url:
           type: text
           label: Output URL

@@ -100,6 +100,10 @@ function assets($that, $event_horizon, $input_url, $data) {
       $asset_file_origin = GRAV_ROOT . substr($asset, strpos($asset, basename(GRAV_ROOT)) + strlen(basename(GRAV_ROOT)));
       $asset_file_destination = $event_horizon . substr($asset, strpos($asset, basename(GRAV_ROOT)) + strlen(basename(GRAV_ROOT)));
       $asset_route = str_replace(basename($asset_file_destination), '', $asset_file_destination);
+      $query_string_pos = strpos($asset_file_destination, '?');
+      if ($query_string_pos > 0) {
+          $asset_file_destination = substr($asset_file_destination, 0, $query_string_pos);
+      }
       // asset exists
       if (file_exists($asset_file_destination)) {
         switch (true) {
