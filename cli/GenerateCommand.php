@@ -166,10 +166,19 @@ class GenerateCommand extends ConsoleCommand {
     // override pages array with translated routes if more than 1 language is found
     $languages = $grav['language']->getLanguages();
     if (is_array($languages) && count($languages)>1) {
+        $sitemap = array();
         $pages_new = array();
-        foreach ($languages as $language) {
+        foreach ($languages as $lang_k => $language) {
             foreach ($pages as $page_slug => $page_path) {
                 $page_key = sprintf('/%s%s', $language, $this->_getTranslatedUrl($language, $page_path));
+                $page_key_0 = sprintf('/%s/%s', $languages[0], trim($page_slug,'/'));
+                if (array_key_exists($page_key_0, $sitemap) && is_array($sitemap[$page_key_0])) {
+                    $sitemap[$page_key_0][$language] = $page_key;
+                } else {
+                    $sitemap[$page_key_0] = array(
+                        $language => $page_key
+                    );
+                }
                 $pages_new[$page_key] = $page_path;
             }
         }
@@ -263,12 +272,52 @@ class GenerateCommand extends ConsoleCommand {
         }
     }
 
+    /* generate sitemap */
+    $pages_to_exclude = array(
+        'i-nostri-clienti',
+        'mercati-settori-di-applicazione',
+        'soluzioni-dam',
+        'chi-siamo',
+        'dam-solutions',
+        'who-we-are',
+        'our-clients',
+        'dam-industries',
+        'qui-sommes-nous',
+        'solutions-DAM',
+        'clients',
+        'secteurs-du-dam'
+    );
+    $languages = $grav['language']->getLanguages();
+    if (is_array($languages) && count($languages)>1) {
+        $urlset = new \SimpleXMLElement('<urlset></urlset>');
+        $urlset->addAttribute('xmlns', 'http://www.sitemaps.org/schemas/sitemap/0.9');
+        $urlset->addAttribute('xmlns:xhtml', 'http://www.w3.org/1999/xhtml');
+        $sitemap_output_baseurl = rtrim($output_url, ' /');
+        foreach ($sitemap as $url_loc => $url_i18n) {
+            if (!in_array(end(explode('/', $url_loc)), $pages_to_exclude)) {
+                $url = $urlset->addChild('url');
+                $url->addChild('loc', $sitemap_output_baseurl.$url_loc.'/');
+                if (is_array($url_i18n)) {
+                    foreach ($url_i18n as $url_i18n_lang => $url_i18n_href) {
+                        //echo $url_i18n_href.PHP_EOL;
+                        $link = $url->addChild('xhtml:link');
+                        $link->addAttribute('rel', 'alternate');
+                        $link->addAttribute('hreflang', $url_i18n_lang);
+                        $link->addAttribute('href', $sitemap_output_baseurl.$url_i18n_href.'/');
+                    }
+                }
+                $url->addChild('lastmod', date('Y-m-d'));
+            }
+        }
+        file_put_contents(sprintf('%s/sitemap.xml', rtrim($output_path,' /')), $urlset->asXML());
+    }
+
     /* generate php redirects if home alias is not empty */
     if (is_array($languages) && count($languages)>1) {
         if (!empty($grav['config']['system']['home']['alias'])) {
             foreach ($languages as $language) {
                 $redirect_contents = sprintf(
-                    '<?php'.PHP_EOL.'header("Location: %s/");'.PHP_EOL.'?>',
+                    '<?php'.PHP_EOL.'header("Location: %s");'.PHP_EOL.'?>',
                     trim($grav['config']['system']['home']['alias'], '/')
                 );
                 file_put_contents(sprintf(
@@ -278,7 +327,7 @@ class GenerateCommand extends ConsoleCommand {
                 ), $redirect_contents);
             }
             $main_redirect_contents = sprintf(
-                '<?php'.PHP_EOL.'header("Location: %s/%s/");'.PHP_EOL.'?>',
+                '<?php'.PHP_EOL.'header("Location: %s/%s");'.PHP_EOL.'?>',
                 $languages[0],
                 trim($grav['config']['system']['home']['alias'], '/')
             );
