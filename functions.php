@@ -35,11 +35,11 @@ function portal($in, $out, $content) {
     : $content
   );
   // taxonomy:child -> taxonomy/child
-  $content = preg_replace_callback(
+  /*$content = preg_replace_callback(
     '~href=".*?"~',
     function ($matches) { return preg_replace('~(.*?/.*?):(.*?)~', "$1/$2", $matches)[0]; },
     $content
-  );
+  );*/
   return $content;
 }
 
@@ -87,18 +87,25 @@ function pages($that, $route, $path, $path_origin, $data, $force) {
 
 // generate assets
 function assets($that, $event_horizon, $input_url, $data) {
+  //print_r($data);
   $asset_links = array();
   $asset_links[] = tidal_disruption($data, 'link', 'href');
   $asset_links[] = tidal_disruption($data, 'script', 'src');
   $asset_links[] = tidal_disruption($data, 'img', 'src');
   $input_url_parts = parse_url($input_url);
   foreach (array_flatten($asset_links) as $asset) {
+    //print_r($asset);
     if (
       strpos($asset, 'data:') !== 0 && // exclude data URIs
       (strpos($asset, '/') === 0 || $input_url_parts['host'] === parse_url($asset)['host']) // continue if asset is local
     ) {
-      $asset_file_origin = GRAV_ROOT . substr($asset, strpos($asset, basename(GRAV_ROOT)) + strlen(basename(GRAV_ROOT)));
-      $asset_file_destination = $event_horizon . substr($asset, strpos($asset, basename(GRAV_ROOT)) + strlen(basename(GRAV_ROOT)));
+      $asset_path = ltrim(str_ireplace($input_url_parts['path'], '', str_ireplace($input_url, '', $asset)),'/');
+      //$asset_file_origin = GRAV_ROOT . substr($asset, strpos($asset, basename(GRAV_ROOT)) + strlen(basename(GRAV_ROOT)));
+      //$asset_file_destination = $event_horizon . substr($asset, strpos($asset, basename(GRAV_ROOT)) + strlen(basename(GRAV_ROOT)));
+      $asset_file_origin = rtrim(GRAV_ROOT, '/').'/'.$asset_path;
+      $asset_file_destination = rtrim($event_horizon, '/').'/'.$asset_path;
+      //print_r($asset_file_origin).PHP_EOL;
+      //print_r($asset_file_destination).PHP_EOL;
       $asset_route = str_replace(basename($asset_file_destination), '', $asset_file_destination);
       $query_string_pos = strpos($asset_file_destination, '?');
       if ($query_string_pos > 0) {
