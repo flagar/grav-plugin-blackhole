@@ -338,14 +338,14 @@ class GenerateCommand extends ConsoleCommand {
               '}'.PHP_EOL.
               'header("HTTP/1.1 301 Moved Permanently");'.PHP_EOL.
               'switch ($locale) {'.PHP_EOL.
-              '    case \'it\':'.PHP_EOL.
-              '        header("Location: it/%s/");'.PHP_EOL.
+              '    case \'en\':'.PHP_EOL.
+              '        header("Location: en/%s/");'.PHP_EOL.
               '        break;'.PHP_EOL.
               '    case \'fr\':'.PHP_EOL.
               '        header("Location: fr/%s/");'.PHP_EOL.
               '        break;'.PHP_EOL.
               '    default:'.PHP_EOL.
-              '        header("Location: en/%s/");'.PHP_EOL.
+              '        header("Location: it/%s/");'.PHP_EOL.
               '        break;'.PHP_EOL.
               '}'.PHP_EOL,
               $home_alias_slug,
