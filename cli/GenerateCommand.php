@@ -271,6 +271,7 @@ class GenerateCommand extends ConsoleCommand {
             Folder::copy(trim($dir_to_copy,'/'), rtrim($output_path, ' /').'/'.trim($dir_to_copy,'/'));
         }
     }
+    copy(GRAV_ROOT.'/sendticket.php', rtrim($output_path, ' /').'/sendticket.php');
 
     /* generate sitemap */
     $pages_to_exclude = array(
@@ -317,7 +318,9 @@ class GenerateCommand extends ConsoleCommand {
         if (!empty($grav['config']['system']['home']['alias'])) {
             foreach ($languages as $language) {
                 $redirect_contents = sprintf(
-                    '<?php'.PHP_EOL.'header("Location: %s");'.PHP_EOL.'?>',
+                    '<?php'.PHP_EOL.
+                    'header("HTTP/1.1 301 Moved Permanently");'.PHP_EOL.
+                    'header("Location: %s");'.PHP_EOL.'?>',
                     trim($grav['config']['system']['home']['alias'], '/')
                 );
                 file_put_contents(sprintf(
@@ -326,10 +329,25 @@ class GenerateCommand extends ConsoleCommand {
                     $language
                 ), $redirect_contents);
             }
+            $home_alias_slug = trim($grav['config']['system']['home']['alias'], '/');
             $main_redirect_contents = sprintf(
-                '<?php'.PHP_EOL.'header("Location: %s/%s");'.PHP_EOL.'?>',
-                $languages[0],
-                trim($grav['config']['system']['home']['alias'], '/')
+              '<?php'.PHP_EOL.
+              '$locale = Locale::acceptFromHttp($_SERVER[\'HTTP_ACCEPT_LANGUAGE\']);'.PHP_EOL.
+              'header("HTTP/1.1 301 Moved Permanently");'.PHP_EOL.
+              'switch ($locale) {'.PHP_EOL.
+              '    case \'it\':'.PHP_EOL.
+              '        header("Location: it/%s/");'.PHP_EOL.
+              '        break;'.PHP_EOL.
+              '    case \'fr\':'.PHP_EOL.
+              '        header("Location: fr/%s/");'.PHP_EOL.
+              '        break;'.PHP_EOL.
+              '    default:'.PHP_EOL.
+              '        header("Location: en/%s/");'.PHP_EOL.
+              '        break;'.PHP_EOL.
+              '}'.PHP_EOL,
+              $home_alias_slug,
+              $home_alias_slug,
+              $home_alias_slug
             );
             file_put_contents(sprintf(
                 '%s/index.php',
