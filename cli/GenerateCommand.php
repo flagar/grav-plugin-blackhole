@@ -333,6 +333,9 @@ class GenerateCommand extends ConsoleCommand {
             $main_redirect_contents = sprintf(
               '<?php'.PHP_EOL.
               '$locale = Locale::acceptFromHttp($_SERVER[\'HTTP_ACCEPT_LANGUAGE\']);'.PHP_EOL.
+              'if (!empty($locale)) {'.PHP_EOL.
+              '   $locale = substr($locale, 0, 2);'.PHP_EOL.
+              '}'.PHP_EOL.
               'header("HTTP/1.1 301 Moved Permanently");'.PHP_EOL.
               'switch ($locale) {'.PHP_EOL.
               '    case \'it\':'.PHP_EOL.
