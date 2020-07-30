@@ -311,6 +311,7 @@ class GenerateCommand extends ConsoleCommand {
             }
         }
         file_put_contents(sprintf('%s/sitemap.xml', rtrim($output_path,' /')), $urlset->asXML());
+        file_put_contents(sprintf('%s/robots.txt', rtrim($output_path,' /')), 'Sitemap: /sitemap.xml'.PHP_EOL);
     }
 
     /* generate php redirects if home alias is not empty */
@@ -332,7 +333,7 @@ class GenerateCommand extends ConsoleCommand {
             $home_alias_slug = trim($grav['config']['system']['home']['alias'], '/');
             $main_redirect_contents = sprintf(
               '<?php'.PHP_EOL.
-              '$locale = Locale::acceptFromHttp($_SERVER[\'HTTP_ACCEPT_LANGUAGE\']);'.PHP_EOL.
+              '$locale = $_SERVER[\'HTTP_ACCEPT_LANGUAGE\'];'.PHP_EOL.
               'if (!empty($locale)) {'.PHP_EOL.
               '   $locale = substr($locale, 0, 2);'.PHP_EOL.
               '}'.PHP_EOL.
