@@ -83,6 +83,9 @@ function pages($that, $route, $path, $path_origin, $data, $force) {
     generate($route, $path, $data);
     $that->writeln('<green>GENERATING</green> ➜ ' . realpath($route));
   }
+  if (empty($data)) {
+    $that->writeln('<red>ATTENTION! EMPTY CONTENTS</red> ➜ ' . realpath($route));
+  }
 }
 
 // generate assets
