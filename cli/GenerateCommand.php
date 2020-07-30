@@ -168,16 +168,21 @@ class GenerateCommand extends ConsoleCommand {
     if (is_array($languages) && count($languages)>1) {
         $sitemap = array();
         $pages_new = array();
-        foreach ($languages as $lang_k => $language) {
-            foreach ($pages as $page_slug => $page_path) {
+        foreach ($pages as $page_slug => $page_path) {
+            foreach ($languages as $lang_k => $language) {
                 $page_key = sprintf('/%s%s', $language, $this->_getTranslatedUrl($language, $page_path));
-                $page_key_0 = sprintf('/%s/%s', $languages[0], trim($page_slug,'/'));
-                if (array_key_exists($page_key_0, $sitemap) && is_array($sitemap[$page_key_0])) {
-                    $sitemap[$page_key_0][$language] = $page_key;
-                } else {
-                    $sitemap[$page_key_0] = array(
-                        $language => $page_key
-                    );
+                //$page_key_0 = sprintf('/%s/%s', $languages[0], trim($page_slug,'/'));
+                if ($language == $languages[0]) {
+                    $page_key_0 = $page_key;
+                }
+                if (!empty($page_key_0)) {
+                    if (array_key_exists($page_key_0, $sitemap) && is_array($sitemap[$page_key_0])) {
+                        $sitemap[$page_key_0][$language] = $page_key;
+                    } else {
+                        $sitemap[$page_key_0] = array(
+                            $language => $page_key
+                        );
+                    }
                 }
                 $pages_new[$page_key] = $page_path;
             }
